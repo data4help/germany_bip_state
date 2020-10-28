@@ -5,15 +5,16 @@
 library("readxl")
 library("gganimate")
 library("gifski")
+library(Quandl)
 library(magick)
 library(dplyr)
 library(tidyverse)
 library(sp)
 library(raster)
 library(ggplot2)
+library(gganimate)
 library(ggthemes)
 library(ineq)
-
 
 # Paths
 main_path = "/Users/paulmora/Documents/projects/germany_bip_state"
@@ -126,7 +127,7 @@ Looking at a dynamic version of the GDP per capita with moving barcharts
 "
 
 east_states = c("Berlin", "Mecklenburg-Vorpommern", "Sachsen",
-                "Sachsen-Anhalt", "Thüringen")
+                "Sachsen-Anhalt", "Thüringen", "Brandenburg")
 
 barplot_gdp_data = gdp_data %>%
   filter(Bundesland != "Deutschland") %>%
@@ -134,6 +135,7 @@ barplot_gdp_data = gdp_data %>%
   mutate(position = if_else(Bundesland %in% east_states, "East", "West")) %>%
   group_by(year_num) %>%
   mutate(rank = min_rank(-real_gdp_per_capita) * 1) %>%
+  dplyr::select(year_num, real_gdp_per_capita, position, rank, Bundesland)
   ungroup()
 
 p = ggplot(barplot_gdp_data, aes(rank, group=Bundesland,
@@ -159,11 +161,11 @@ p = ggplot(barplot_gdp_data, aes(rank, group=Bundesland,
         axis.text=element_text(size=20),
         axis.title=element_text(size=25),
         axis.text.x = element_text(size=25),
-        plot.margin = unit(c(1, 1, 1, 12.5), "cm"))+
+        plot.margin = unit(c(1, 1, 1, 12.5), "cm")) +
   transition_states(year_num, transition_length=4, state_length=1) +
   ease_aes("cubic-in-out")
 
-animate(p, fps=25, duration=20, width=1200, height=800,
+gganimate::animate(p, fps=25, duration=20, width=1200, height=800,
         renderer=gifski_renderer(paste(output_path,
                                        "/barchart/animation.gif", sep="")))
 
@@ -181,7 +183,7 @@ for (year_num in unique(gdp_data$year)) {
     filter(Bundesland != "Deutschland")
 
   cum_real_gdp = Lc(real_gdp_data_year$real_gdp_per_capita)
-  gini_coef = round(Gini(real_gdp_data_year$real_gdp_per_capita), 2)
+  gini_coef = round(Gini(real_gdp_data_year$real_gdp_per_capita), 4)
   p = cum_real_gdp[1]
   L = cum_real_gdp[2]
   cum_fun_df = data.frame(p,L)
